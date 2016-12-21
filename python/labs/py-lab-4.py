@@ -2,9 +2,9 @@ import re
 
 
 def revert(s):
-    reversedWords = reversed(re.findall(r'[A-Za-z]+', s))
-    sWithoutWords = re.sub(r'[A-Za-z]+', '%s', s)
-    return sWithoutWords % tuple(reversedWords)
+    reversed_words = reversed(re.findall(r'[A-Za-z]+', s))
+    str_without_words = re.sub(r'[A-Za-z]+', '%s', s)
+    return str_without_words % tuple(reversed_words)
 
 string = '_____The___Day_That_Never_Comes___'
 print string
