@@ -4,3 +4,7 @@
 out/
 *.classes
 *.jar
+target/
+
+out-test/
+*.zip
