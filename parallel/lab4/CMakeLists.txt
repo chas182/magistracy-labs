@@ -1,0 +1,10 @@
+cmake_minimum_required(VERSION 3.6)
+project(lab4)
+find_package(MPI)
+
+set(CMAKE_CXX_STANDARD 99)
+SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS}" -fopenmp)
+set(SOURCE_FILES main.c)
+include_directories(SYSTEM ${MPI_INCLUDE_PATH})
+add_executable(lab4 ${SOURCE_FILES})
+target_link_libraries(my_mpi_target ${MPI_C_LIBRARIES})

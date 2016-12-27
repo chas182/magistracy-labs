@@ -5,6 +5,6 @@ out/
 *.classes
 *.jar
 target/
-
+*-debug/
 out-test/
 *.zip
