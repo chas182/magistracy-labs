@@ -5,28 +5,26 @@
 #include <iostream>
 #include <vector>
 
-
 using namespace std;
 
-int CHILDREN_COUNT = 1;
-
 char** get_command_args(vector<string> &command);
-vector<vector<string>> collect_commands(int argc, char **argv);
+vector<vector<string>> collect_commands(int argc, char **argv, int children_count);
 void print_usage();
 
 int main(int argc, char ** argv) {
-    vector<vector<string>> commands = collect_commands(argc, argv);
+    int children_count = 1;
 
-    int file_descriptors[CHILDREN_COUNT - 1][2];
-    for (int i = 0; i < CHILDREN_COUNT - 1; ++i) {
+    vector<vector<string>> commands = collect_commands(argc, argv, children_count);
+    int file_descriptors[children_count - 1][2];
+    for (int i = 0; i < children_count - 1; ++i) {
         if (pipe(file_descriptors[i]) == -1) {
             perror("Pipe creating error");
             return 1;
         }
     }
 
-    pid_t* children = new pid_t[CHILDREN_COUNT];
-    for (int i = 0; i < CHILDREN_COUNT; ++i) {
+    pid_t* children = new pid_t[children_count];
+    for (int i = 0; i < children_count; ++i) {
         pid_t pid = fork();
 
         if (pid == 0) {
@@ -34,11 +32,11 @@ int main(int argc, char ** argv) {
                 if (dup2(file_descriptors[i - 1][0], 0) == -1) perror("Duplicate standard input");
                 if (close(file_descriptors[i - 1][1]) == -1)   perror("Close pipe file descriptor for writing");
             }
-            if (i != CHILDREN_COUNT - 1) {
+            if (i != children_count - 1) {
                 if (dup2(file_descriptors[i][1], 1) == -1) perror("Duplicate standard output");
                 if (close(file_descriptors[i][0]) == -1)   perror("Close pipe file descriptor for reading");
             }
-            for (int j = i + 1; j < CHILDREN_COUNT - 1; ++j) {
+            for (int j = i + 1; j < children_count - 1; ++j) {
                 if (close(file_descriptors[j][0]) == -1) perror("Close pipe file descriptor for reading");
                 if (close(file_descriptors[j][1]) == -1) perror("Close pipe file descriptor for writing");
             }
@@ -46,14 +44,17 @@ int main(int argc, char ** argv) {
             vector<string> command = commands[i];
             char** command_args = get_command_args(command);
             if (execvp(command[0].c_str(), command_args) == -1) {
-                cerr << "Error while executing: '";
-                for (int k = 0; i < command.size(); k++) cerr << command[k] << " ";
-                cerr << "'\n";
-                perror("");
-                break;
+                perror("123123123123");
+                char *err = "Error while executing: '";
+                for (int k = 0; i < command.size() - 1; k++) { strcat(err, command[k].c_str()); strcat(err, " "); }
+                strcat(err, "\n");
+                perror(err);
+                exit(1);
             }
+            if (errno > 0)
+                perror("1212");
             for (int k = 0; command.size() + 1; k--)
-                delete command_args[k];
+                free(command_args[k]);
             delete[] command_args;
 
         }
@@ -65,20 +66,20 @@ int main(int argc, char ** argv) {
 
     int exitCode = 0;
     int status;
-    for (int i = 0; i < CHILDREN_COUNT; ++i) {
+    for (int i = 0; i < children_count; ++i) {
         waitpid(children[i], &status, 0);
         if (WIFEXITED(status))
             if (WEXITSTATUS(status) != 0)
                 exitCode = 1;
     }
 
-    for (int i = 0; i < CHILDREN_COUNT - 1; ++i) close(file_descriptors[i][0]);
+    for (int i = 0; i < children_count - 1; ++i) close(file_descriptors[i][0]);
     delete[] children;
 
     return exitCode;
 }
 
-vector<vector<string>> collect_commands(int argc, char** argv) {
+vector<vector<string>> collect_commands(int argc, char** argv, int children_count) {
     if (argc < 2) {
         cerr << "ERROR: Argument list can't be empty." << endl;
         print_usage();
@@ -88,17 +89,17 @@ vector<vector<string>> collect_commands(int argc, char** argv) {
     commands.push_back(vector<string>());
     for (int i = 1; i < argc; ++i)
         if (strcmp(argv[i], "|") == 0) {
-            if (commands[CHILDREN_COUNT - 1].size() == 0) {
+            if (commands[children_count - 1].size() == 0) {
                 cerr << "ERROR: missing command between pipes" << endl;
                 print_usage();
                 exit(2);
             }
-            CHILDREN_COUNT++;
+            children_count++;
             commands.push_back(vector<string>());
         } else
-            commands[CHILDREN_COUNT - 1].push_back(string(argv[i]));
+            commands[children_count - 1].push_back(string(argv[i]));
 
-    if (commands[CHILDREN_COUNT - 1].size() < 1) {
+    if (commands[children_count - 1].size() < 1) {
         cerr << "ERROR: missing command after last pipe" << endl;
         print_usage();
         exit(2);
