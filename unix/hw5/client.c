@@ -30,6 +30,13 @@ bool Less(const char result) {
     return result == '<';
 }
 
+void closeSocket(const int socketFD) {
+	if (close(socketFD) == -1) {
+        perror("close socket");
+        exit(2);
+    }
+}
+
 int main(int argc, char* argv[]) {
     int socketFD;
 
@@ -49,6 +56,10 @@ int main(int argc, char* argv[]) {
 
     struct sockaddr_un remote;
     remote.sun_family = AF_UNIX;
+    if (strlen(argv[1]) >= sizeof(remote.sun_path)) {
+        fprintf(stderr, "Soctet path is too long.\n");
+        exit(1);
+    }
     strcpy(remote.sun_path, socketPath);
     socklen_t remoteLen = sizeof(remote);
 
@@ -62,17 +73,14 @@ int main(int argc, char* argv[]) {
     uint32_t guess = FindNumber(socketFD);
     fprintf(stdout, "%d\n", guess);
 
-    if (close(socketFD) == -1) {
-        perror("close socket");
-        return 2;
-    }
+    closeSocket(socketFD);
     return 0;
 }
 
 uint32_t FindNumber(const int socketFD) {
     uint32_t left = MIN;
     uint32_t right = MAX;
-    uint32_t toSend, guess;
+    uint32_t toSend, guess = 0;
     char result = ' ';
 
     while (!Equals(result) && left <= right) {
@@ -81,12 +89,15 @@ uint32_t FindNumber(const int socketFD) {
         toSend = htonl(guess);
 
         if (!SendAll(socketFD, (char*)&toSend, sizeof(toSend))) {
-            fprintf(stderr, "send");
+        	closeSocket(socketFD);
+        	exit(3);
             break;
         }
 
         if (!RecvAll(socketFD, &result, sizeof(result))) {
             fprintf(stderr, "recv");
+            closeSocket(socketFD);
+        	exit(3);
             break;
         }
         fprintf(stderr, "attempt: x %c %d\n", result, guess);
