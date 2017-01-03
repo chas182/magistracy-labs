@@ -44,15 +44,12 @@ int main(int argc, char ** argv) {
             vector<string> command = commands[i];
             char** command_args = get_command_args(command);
             if (execvp(command[0].c_str(), command_args) == -1) {
-                perror("123123123123");
                 char *err = "Error while executing: '";
                 for (int k = 0; i < command.size() - 1; k++) { strcat(err, command[k].c_str()); strcat(err, " "); }
                 strcat(err, "\n");
                 perror(err);
                 exit(1);
             }
-            if (errno > 0)
-                perror("1212");
             for (int k = 0; command.size() + 1; k--)
                 free(command_args[k]);
             delete[] command_args;
@@ -86,16 +83,16 @@ vector<vector<string>> collect_commands(int argc, char** argv, int children_coun
         exit(2);
     }
     vector<vector<string>> commands;
-    commands.push_back(vector<string>());
+    commands.emplace_back();
     for (int i = 1; i < argc; ++i)
         if (strcmp(argv[i], "|") == 0) {
-            if (commands[children_count - 1].size() == 0) {
+            if (commands[children_count - 1].empty()) {
                 cerr << "ERROR: missing command between pipes" << endl;
                 print_usage();
                 exit(2);
             }
             children_count++;
-            commands.push_back(vector<string>());
+            commands.emplace_back();
         } else
             commands[children_count - 1].push_back(string(argv[i]));
 
